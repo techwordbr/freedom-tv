@@ -4,3 +4,4 @@
 *.ipk.bak
 classes/
 dex/
+!baixar/*.apk

@@ -11,7 +11,9 @@ Com o Freedom TV, o botão **Home** e o **ligar da TV** abrem o tema que você e
 
 ## Baixar
 
-Baixe o aplicativo do celular (`.apk`) na página de **[Releases](../../releases/latest)**.
+**[⬇ Baixar o app do celular (FreedomTV.apk)](https://github.com/techwordbr/freedom-tv/raw/main/baixar/FreedomTV.apk)**: versão 1.8.5, tema 0.5.32.
+
+Se o celular avisar que o arquivo pode ser perigoso, é porque o app não vem da Play Store. Toque em "Baixar assim mesmo".
 
 ## Como usar
 
