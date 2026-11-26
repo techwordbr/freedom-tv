@@ -1,0 +1,12 @@
+*{box-sizing:border-box}body{background:#f3f2f7;color:#20212b;font:24px Arial,sans-serif;padding:32px 5vw}h1{font-size:42px;margin:12px 0}h2{font-size:28px}p{line-height:1.4}main{display:flex;gap:24px}section{background:#fff;border-radius:28px;padding:22px 28px;margin:18px 0;flex:1}button{font:inherit;border:0;border-radius:28px;background:#dce5ff;color:#17233e;padding:16px 25px;margin:8px 12px 8px 0;cursor:pointer}button:focus{outline:4px solid #526ca2;outline-offset:4px}button:disabled{opacity:.5}#status{min-height:34px}#report{border:2px solid #aab9d7}@media(prefers-color-scheme:dark){body{background:#17191e;color:#f4f3fa}section{background:#282c34}button{background:#3d526f;color:white}}
+/* Room under the last section so the page can move it up to the middle of the TV (Augusto 26/11) */
+html,body{overflow-y:auto}body{padding-bottom:45vh}
+/* Switches showing the current Home mode (Augusto 25/11) */
+#modes{border:2px solid #aab9d7}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:24px;width:100%;max-width:980px;text-align:left;background:#eef1fb;border-radius:24px;padding:18px 26px;margin:10px 0}
+.sw-text{display:flex;flex-direction:column;gap:6px}.sw-text b{font-size:26px}.sw-text small{font-size:19px;opacity:.75}
+.track{flex:0 0 auto;width:92px;height:50px;border-radius:999px;background:#9aa3b5;position:relative;transition:background .2s}
+.knob{position:absolute;top:5px;left:5px;width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:left .2s}
+.switch[aria-checked=true] .track{background:#2e9e5b}.switch[aria-checked=true] .knob{left:47px}
+.switch.busy .track{opacity:.5}
+@media(prefers-color-scheme:dark){.switch{background:#323844;color:#f4f3fa}.track{background:#5b6273}}

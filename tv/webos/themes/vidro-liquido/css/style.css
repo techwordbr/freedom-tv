@@ -1,0 +1,309 @@
+/* Tela desenhada em 1920x1080: é a resolução de apps na TV, que amplia para 4K sozinha.
+   Regra de ouro na TV: nada de degradê, desfoque ou cor calculada no CSS (cada um custa até
+   2 s por redesenho no processador da Samsung). O visual de vidro vem de imagens prontas,
+   feitas no PC por ferramentas/preparar-imagens.ps1. Aqui só cores lisas, imagens e
+   movimentos por transform/opacity. */
+html, body { margin: 0; background: #000; overflow: hidden; }
+
+#tela {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  color: #f4f6fb;
+  font-family: "SamsungOneUI", "SamsungOne", "Segoe UI", Roboto, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  /* valores vindos das configurações (main.js) */
+  --a: .13;       /* branco do vidro (Transparência) */
+  --leve: .75;    /* opacidade dos painéis no modo Leve */
+  --brilho: .35;  /* força das bordas de luz (Reflexos) */
+  --r: .6;
+}
+#tela p, #tela h1, #tela h2, #tela h3 { margin: 0; }
+.anim-suaves { --dur: .18s; --mola: cubic-bezier(.3, 1.2, .6, 1); }
+.anim-rapidas { --dur: .1s; --mola: cubic-bezier(.2, .8, .2, 1); }
+.anim-desligadas { --dur: 0s; --mola: linear; }
+
+/* ---------- Fundo: duas camadas de foto, uma aparece enquanto a outra some ---------- */
+#fundo { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+.camada {
+  position: absolute;
+  left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  background: no-repeat 0 0 / 1920px 1080px;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+  will-change: opacity;
+}
+.camada.visivel { opacity: 1; }
+
+/* ---------- Vidro ---------- */
+.vidro {
+  position: absolute;
+  border-radius: 40px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, var(--brilho)), inset 0 0 0 1.5px rgba(255, 255, 255, .12);
+}
+.vidro > * { position: relative; }
+/* Vidro fosco: a foto desfocada (pronta) alinhada com a posição do painel + um véu branco liso */
+.fx-equilibrado .vidro {
+  background: var(--vidro) no-repeat;
+  background-size: 1920px 1080px;
+  background-position: var(--bx, 0) var(--by, 0);
+}
+.fx-equilibrado .vidro::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, var(--a));
+  pointer-events: none;
+}
+/* Leve: painel escuro liso */
+.fx-leve .vidro { background: rgba(18, 22, 34, var(--leve)); }
+
+/* ---------- Relógio e menu lateral ---------- */
+.relogio { position: absolute; left: 84px; top: 52px; text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
+.hora { font-size: 104px; font-weight: 300; line-height: 1; letter-spacing: -2px; }
+.data { font-size: 32px; opacity: .85; margin-top: 10px; }
+
+.menu {
+  left: 64px; top: 205px;
+  width: 336px;
+  padding: 16px 14px;
+  box-sizing: border-box;
+  z-index: 2;
+}
+.item {
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 22px;
+  margin-bottom: 3px;
+  border-radius: 27px;
+  font-size: 25px;
+  white-space: nowrap;
+  opacity: .82;
+  cursor: pointer;
+}
+.item:last-child { margin-bottom: 0; }
+.item svg { width: 36px; height: 36px; fill: currentColor; margin-right: 22px; flex: none; }
+.item.ativo { opacity: 1; background: rgba(255, 255, 255, .1); }
+.item.foco { opacity: 1; }
+
+.dicas {
+  position: absolute;
+  left: 84px; top: 884px;
+  width: 290px;
+  font-size: 21px;
+  line-height: 1.65;
+  opacity: .75;
+  z-index: 2;
+}
+.dicas small { opacity: .7; }
+.tecla { display: inline-block; width: 17px; height: 17px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; }
+.tecla.amarelo { background: #f5c400; }
+.tecla.azul { background: #2f7bff; }
+.tecla.verde { background: #2fbf4f; }
+
+/* ---------- Seções ---------- */
+.secao { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 1; }
+.escondida { display: none; }
+
+.destaque { left: 420px; top: 160px; width: 1130px; height: 360px; }
+.destaque-texto { padding: 58px 66px; }
+.rotulo { font-size: 22px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; opacity: .85; }
+.destaque h1 { font-size: 86px; font-weight: 700; line-height: 1.05; margin: 14px 0 8px; letter-spacing: -1px; }
+.sub { font-size: 30px; opacity: .8; }
+.pilula {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 30px;
+  padding: 16px 36px;
+  border-radius: 40px;
+  font-size: 28px;
+  background: rgba(255, 255, 255, .16);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .45);
+}
+.pilula b { font-size: 24px; margin-right: 14px; padding: 2px 12px; border-radius: 10px; background: rgba(255, 255, 255, .85); color: #111; }
+
+.cartao { left: 1580px; width: 276px; padding: 28px 30px; box-sizing: border-box; border-radius: 34px; }
+.clima { top: 160px; height: 190px; display: flex; align-items: center; }
+.entradas { top: 370px; height: 150px; }
+.astro {
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  margin-right: 24px;
+  flex: none;
+  background: #e3e6ef;
+  box-shadow: inset -10px -12px 0 rgba(120, 126, 150, .35);
+}
+.cidade { font-size: 22px; opacity: .8; }
+.graus { font-size: 60px; font-weight: 600; line-height: 1.1; }
+.ceu { font-size: 20px; opacity: .7; }
+.fonte { display: flex; align-items: center; font-size: 30px; margin-top: 18px !important; }
+.fonte svg { width: 38px; height: 38px; fill: currentColor; margin-right: 16px; }
+.fonte span { margin-left: auto; font-size: 40px; opacity: .7; }
+
+.titulo-linha { position: absolute; left: 420px; font-size: 30px; font-weight: 600; text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.janela-linha {
+  position: absolute;
+  left: 400px;
+  width: 1520px; height: 236px;
+  padding: 24px 20px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.linha { display: flex; transition: transform var(--dur) var(--mola); will-change: transform; }
+.linha .app { margin-right: 16px; flex: none; }
+
+.painel-grade { left: 420px; top: 140px; width: 1440px; height: 900px; }
+.titulo-secao { position: absolute; left: 470px; top: 172px; font-size: 48px; font-weight: 600; }
+.janela-grade {
+  position: absolute;
+  left: 450px; top: 250px;
+  width: 1400px; height: 780px;
+  padding: 24px 20px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.grade {
+  display: grid;
+  grid-template-columns: repeat(8, 150px);
+  grid-gap: 16px 22px;
+  transition: transform var(--dur) var(--mola);
+  will-change: transform;
+}
+.vazio { position: absolute; left: 470px; top: 270px; font-size: 30px; opacity: .75; }
+
+/* ---------- Ícones (cantos, brilho e borda de vidro já vêm na imagem) ---------- */
+.app { position: relative; text-align: center; width: 150px; cursor: pointer; }
+.icone {
+  position: relative;
+  width: 150px; height: 150px;
+  border-radius: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icone { overflow: hidden; }
+.icone img { border-radius: inherit; object-fit: contain; position: absolute; left: 0; top: 0; width: 150px; height: 150px; }
+.icone.com-imagem {
+  background: linear-gradient(150deg, #334257, #182434 72%) !important;
+}
+.icone.com-imagem::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(226, 240, 255, .58);
+  border-radius: inherit;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 2;
+}
+.marca { padding: 0 12px; font-size: 23px; font-weight: 700; line-height: 1.1; letter-spacing: -.3px; }
+.marca.longa { font-size: 19px; }
+.estrela { position: absolute; top: 10px; right: 12px; font-size: 20px; color: #ffd84d; opacity: 0; }
+.grade .favorito .estrela, #linha-todos .favorito .estrela { opacity: 1; }
+.nome {
+  height: 46px;
+  line-height: 46px;
+  font-size: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: .8;
+}
+.app.foco .nome { opacity: 1; }
+
+/* facho de luz do foco: 12 quadros prontos (img/brilho.png) passados um a um,
+   só o ícone focado é redesenhado e cada quadro é uma cópia simples de imagem */
+.app.foco .icone::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0;
+  width: 150px; height: 150px;
+  z-index: 2;
+  background: url(../img/brilho.png) no-repeat 0 0 / 1800px 150px;
+  animation: brilho .55s steps(12) .05s both;
+  pointer-events: none;
+}
+@keyframes brilho { from { background-position: 0 0; } to { background-position: -1800px 0; } }
+.anim-desligadas .app.foco .icone::before { display: none; }
+
+.app.movendo .icone { transform: translateY(-20px); }
+.app.foco.abrindo .icone { animation: abrir .3s ease-out; }
+@keyframes abrir { 0%, 100% { transform: none; } 45% { transform: scale(1.08); } }
+.anim-desligadas .app.foco.abrindo .icone { animation: none; }
+
+/* ---------- Lente de foco: desenhada uma vez, depois só desliza ---------- */
+#lente {
+  position: absolute;
+  left: 0; top: 0;
+  box-sizing: border-box;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  border: 3px solid #fff;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, .08);
+  box-shadow: 0 0 18px rgba(255, 255, 255, .45);
+  transition: transform var(--dur) var(--mola), opacity .2s;
+  will-change: transform;
+}
+#lente.no-menu {
+  border: 2px solid rgba(160, 205, 255, .9);
+  background: rgba(255, 255, 255, .16);
+  box-shadow: 0 0 16px rgba(110, 170, 255, .45);
+}
+#lente.movendo { border-color: #ffd84d; box-shadow: 0 0 18px rgba(255, 216, 77, .55); }
+
+/* ---------- Personalizar ---------- */
+.ajustes {
+  top: 40px; right: 40px;
+  width: 640px; height: 1000px;
+  padding: 40px 44px;
+  box-sizing: border-box;
+  z-index: 8;
+  transform: translateX(720px);
+  transition: transform .25s cubic-bezier(.2, .9, .25, 1.05);
+}
+.ajustes h2 { font-size: 44px; font-weight: 600; margin-bottom: 32px; }
+.ajustes-aberto .ajustes { transform: none; }
+.ajustes-aberto #lente { opacity: 0 !important; }
+.opcao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 96px;
+  padding: 0 28px;
+  margin-bottom: 10px;
+  border-radius: 24px;
+  font-size: 28px;
+}
+.opcao.foco { background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .75); }
+.lado { display: flex; align-items: center; }
+.seta { opacity: .35; font-size: 22px; margin: 0 14px; }
+.opcao.foco .seta { opacity: 1; }
+.barra { width: 200px; height: 12px; border-radius: 6px; background: rgba(255, 255, 255, .2); overflow: hidden; margin-right: 16px; }
+.barra i { display: block; height: 100%; border-radius: 6px; background: #fff; }
+.num { width: 72px; text-align: right; opacity: .85; }
+.nota { font-size: 22px; line-height: 1.45; opacity: .65; margin: 24px 8px 0 !important; }
+
+/* ---------- Avisos ---------- */
+.toast {
+  left: 0; right: 0; bottom: 60px;
+  width: -webkit-fit-content; width: fit-content;
+  margin: 0 auto;
+  padding: 18px 34px;
+  font-size: 26px;
+  border-radius: 30px;
+  z-index: 9;
+  opacity: 0;
+  transition: opacity .25s;
+}
+.toast.visivel { opacity: 1; }
+.toast.erro { box-shadow: inset 0 0 0 2px rgba(255, 90, 90, .8); }
+
+

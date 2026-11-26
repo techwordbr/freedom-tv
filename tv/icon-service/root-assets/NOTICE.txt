@@ -1,0 +1,7 @@
+SlopBro sources: https://github.com/throwaway96/slopbro
+Pinned source commit: f76b717c7e7b537158bca9969a2675f847019c51
+License: AGPL-3.0-or-later; see COPYING.
+TV Studio modifications: loopback-only delivery, one-run token, separate download directory,
+root execution wrapper with configuration snapshot, completion report and consent UI.
+install-root.sh is the original autoroot.sh. A snapshot is NOT a firmware restore point.
+No full-TV automatic rollback is claimed. No root performed at installation time.

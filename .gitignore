@@ -1,0 +1,6 @@
+*.apk
+*.jks
+*.keystore
+*.ipk.bak
+classes/
+dex/
