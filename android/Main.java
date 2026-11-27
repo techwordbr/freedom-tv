@@ -276,8 +276,13 @@ public class Main extends Activity {
    button("Escolher outra TV",()->{if(!busy)brands();});
  }
 
- void applyThemeNow(int n){
+ // Vidro Líquido: true sends the wallpaper chosen on the phone; false puts the theme's own wallpaper back, so
+ // "Instalar e aplicar" again really re-applies the theme (Augusto 27/11: it only re-sent the same wallpaper).
+ boolean withCustomWall;
+ void applyThemeNow(int n){applyThemeNow(n,false);}
+ void applyThemeNow(int n,boolean customWall){
    if(busy)return;
+   withCustomWall=customWall&&customWallJpg!=null;
    theme=ids[n];prefs.edit().putString("theme",theme).apply();
    String host=prefs.getString("host","").trim();
    String pass=LgSetup.read(this,host);
@@ -297,6 +302,9 @@ public class Main extends Activity {
    String host=prefs.getString("host","").trim();
    screen(6,"Vidro Líquido · Configurações");
    text(tr("Escolha ou envie um novo papel de parede do seu celular diretamente para o tema Vidro Líquido na TV.","Choose or send a new wallpaper from your phone directly to the Liquid Glass theme on your TV.","Elige o envía un nuevo fondo desde tu celular directamente al tema Vidro Líquido en tu TV."));
+   // The chosen wallpapers stay saved in the app (Augusto 27/11), so one can be sent to the TV again later.
+   String selected=prefs.getString("wall:selected","");
+   if(customWallJpg==null&&!selected.isEmpty()&&!selectWall(selected)){prefs.edit().remove("wall:selected").apply();selected="";}
    wallPreview=new ImageView(this);wallPreview.setAdjustViewBounds(true);wallPreview.setMaxHeight(dp(190));
    LinearLayout.LayoutParams wp=new LinearLayout.LayoutParams(-1,-2);wp.topMargin=dp(12);wp.bottomMargin=dp(8);
    if(customWallJpg!=null){
@@ -305,8 +313,25 @@ public class Main extends Activity {
      try(InputStream in=getAssets().open("preview-vidro.png")){wallPreview.setImageBitmap(android.graphics.BitmapFactory.decodeStream(in));}catch(Exception ignored){}
    }
    panel.addView(wallPreview,wp);
+   java.util.List<String> saved=savedWalls();
+   if(!saved.isEmpty()){
+     text(tr("Seus papéis de parede salvos no celular. Toque para escolher; segure para apagar.","Your wallpapers saved on the phone. Tap to choose; hold to delete.","Tus fondos guardados en el celular. Toca para elegir; mantén pulsado para borrar."));
+     HorizontalScrollView strip=new HorizontalScrollView(this);LinearLayout row=new LinearLayout(this);strip.addView(row);
+     for(String id:saved){
+       boolean on=id.equals(selected);
+       ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+       android.graphics.BitmapFactory.Options small=new android.graphics.BitmapFactory.Options();small.inSampleSize=8;
+       thumb.setImageBitmap(android.graphics.BitmapFactory.decodeFile(new File(wallDir(),id+".jpg").getPath(),small));
+       android.graphics.drawable.GradientDrawable frame=rounded(0x00000000,10);frame.setStroke(dp(on?4:1),on?0xff2e9e5b:tone(0xffbbcede,0xff4a6479));thumb.setForeground(frame);
+       thumb.setContentDescription(on?"Papel de parede escolhido":"Papel de parede salvo");
+       thumb.setOnClickListener(v->{if(busy)return;if(selectWall(id))vidroSettings();});
+       thumb.setOnLongClickListener(v->{if(busy)return true;new AlertDialog.Builder(this).setTitle("Apagar este papel de parede?").setMessage("Ele será apagado só deste celular.").setPositiveButton("Apagar",(d,w)->{forgetWall(id);vidroSettings();}).setNegativeButton("Cancelar",null).show();return true;});
+       LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(dp(160),dp(90));tp.rightMargin=dp(10);row.addView(thumb,tp);
+     }
+     LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.topMargin=dp(6);sp.bottomMargin=dp(6);panel.addView(strip,sp);
+   }
    status=new TextView(this);status.setTextSize(15);
-   status.setText(customWallJpg!=null?tr("Novo papel de parede selecionado. Toque em 'Enviar papel de parede para a TV' abaixo.","New wallpaper selected. Tap 'Send wallpaper to TV' below.","Nuevo fondo seleccionado. Toca 'Enviar fondo a la TV' abajo."):tr("Toque abaixo para escolher uma imagem da galeria do celular.","Tap below to choose an image from your phone gallery.","Toca abajo para elegir una imagen de la galería."));
+   status.setText(customWallJpg!=null?tr("Papel de parede escolhido. Toque em 'Enviar papel de parede para a TV agora' abaixo.","Wallpaper chosen. Tap 'Send wallpaper to TV now' below.","Fondo elegido. Toca 'Enviar fondo a la TV ahora' abajo."):tr("Toque abaixo para escolher uma imagem da galeria do celular.","Tap below to choose an image from your phone gallery.","Toca abajo para elegir una imagen de la galería."));
    panel.addView(status);
    button(tr("Escolher papel de parede da galeria","Choose wallpaper from gallery","Elegir fondo de la galería"),()->{
      if(busy)return;
@@ -323,9 +348,10 @@ public class Main extends Activity {
        status.setText("Enviando novo papel de parede para a TV LG…");
        new Thread(()->runWallpaperOnly(host,pass)).start();
      });
-     button(tr("Instalar Vidro Líquido com este papel de parede","Install Liquid Glass with this wallpaper","Instalar Vidro Líquido con este fondo"),()->applyThemeNow(0));
+     button(tr("Instalar Vidro Líquido com este papel de parede","Install Liquid Glass with this wallpaper","Instalar Vidro Líquido con este fondo"),()->applyThemeNow(0,true));
+     button(tr("Voltar ao papel de parede original do tema","Back to the theme's original wallpaper","Volver al fondo original del tema"),()->applyThemeNow(0,false));
    }else{
-     button(tr("Instalar e aplicar Vidro Líquido na TV","Install & apply Liquid Glass on TV","Instalar y aplicar Vidro Líquido en la TV"),()->applyThemeNow(0));
+     button(tr("Instalar e aplicar Vidro Líquido na TV","Install & apply Liquid Glass on TV","Instalar y aplicar Vidro Líquido en la TV"),()->applyThemeNow(0,false));
    }
    button(tr("Voltar aos temas","Back to themes","Volver a los temas"),()->{if(!busy)themes();});
  }
@@ -407,9 +433,13 @@ return session;}catch(Exception e){if(session!=null)session.disconnect();throw e
    RootAccess.exec(session,"node -e \"require('/media/developer/apps/usr/palm/services/com.twbstudio.tvthemes.icons/pairing-store')('tvstudio-icons-client-key')\"");
    RootAccess.exec(session,"if [ -f /var/lib/tvstudio/root-home-enabled ] && [ -f /var/lib/webosbrew/init.d/90-tvstudio-home ]; then node /media/developer/apps/usr/palm/services/com.twbstudio.tvthemes.icons/root-assets/tune-home-boot.js; fi");
   }
-  if("vidro".equals(theme)&&customWallJpg!=null){say("Aplicando seu papel de parede personalizado…");pushWallFiles(session);}
+  if("vidro".equals(theme)){
+   if(withCustomWall&&customWallJpg!=null){say("Aplicando seu papel de parede personalizado…");pushWallFiles(session,customWallJpg,customWallBlurJpg);}
+   else{say("Colocando o papel de parede original do tema…");pushWallFiles(session,asset("vidro-original-1.jpg"),asset("vidro-original-1-vidro.jpg"));}
+  }
   JSONObject paramsObj=new JSONObject().put("studioTheme",theme);
-  if("vidro".equals(theme)&&customWallJpg!=null)paramsObj.put("customWall",System.currentTimeMillis());
+  // customWall makes the TV reload the theme and the picture, so applying the same theme again shows on screen.
+  if("vidro".equals(theme))paramsObj.put("customWall",System.currentTimeMillis());
   String launchJson=new JSONObject().put("id","com.twbstudio.tvthemes").put("params",paramsObj).toString();
   response(session,"/usr/bin/luna-send-pub -n 1 luna://com.webos.applicationManager/launch '"+launchJson+"'",false);
   progress(100);
@@ -431,7 +461,7 @@ return session;}catch(Exception e){if(session!=null)session.disconnect();throw e
     try{session=developerConnect(host,pass);}catch(Exception e){throw new IOException((rootError!=null?"Homebrew: "+rootError+". ":"")+"Modo Desenvolvedor: "+e.getMessage());}
    }
    say("Enviando seu novo papel de parede para o Vidro Líquido…");
-   pushWallFiles(session);
+   pushWallFiles(session,customWallJpg,customWallBlurJpg);
    JSONObject paramsObj=new JSONObject().put("studioTheme","vidro").put("customWall",System.currentTimeMillis());
    String launchJson=new JSONObject().put("id","com.twbstudio.tvthemes").put("params",paramsObj).toString();
    response(session,"/usr/bin/luna-send-pub -n 1 luna://com.webos.applicationManager/launch '"+launchJson+"'",false);
@@ -460,6 +490,9 @@ return session;}catch(Exception e){if(session!=null)session.disconnect();throw e
     ByteArrayOutputStream b2=new ByteArrayOutputStream();
     blur.compress(android.graphics.Bitmap.CompressFormat.JPEG,82,b2);
     customWallBlurJpg=b2.toByteArray();
+    String id=String.valueOf(System.currentTimeMillis());
+    writeFile(new File(wallDir(),id+".jpg"),customWallJpg);writeFile(new File(wallDir(),id+"-vidro.jpg"),customWallBlurJpg);
+    prefs.edit().putString("wall:selected",id).apply();
     if(page==6)vidroSettings();
    }catch(Exception e){if(status!=null)status.setText("Não foi possível ler a imagem: "+e.getMessage());}
   }
@@ -475,9 +508,28 @@ return session;}catch(Exception e){if(session!=null)session.disconnect();throw e
   up.disconnect();
   if(code!=0)throw new IOException("Não foi possível gravar o papel de parede na TV.");
  }
- void pushWallFiles(Session session)throws Exception{
+ void pushWallFiles(Session session,byte[] full,byte[] blur)throws Exception{
   String dir="/media/developer/apps/usr/palm/applications/com.twbstudio.tvthemes/themes/vidro-liquido/fundos";
-  pushStream(session,customWallJpg,dir+"/foto-1.jpg");
-  pushStream(session,customWallBlurJpg,dir+"/foto-1-vidro.jpg");
+  pushStream(session,full,dir+"/foto-1.jpg");
+  pushStream(session,blur,dir+"/foto-1-vidro.jpg");
+ }
+ // Wallpapers saved on the phone: <id>.jpg (full) and <id>-vidro.jpg (blurred glass), newest first.
+ File wallDir(){File d=new File(getFilesDir(),"fundos");d.mkdirs();return d;}
+ static byte[] readAll(InputStream in)throws IOException{ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[16384];int n;while((n=in.read(b))!=-1)o.write(b,0,n);return o.toByteArray();}
+ byte[] asset(String file)throws IOException{try(InputStream in=getAssets().open(file)){return readAll(in);}}
+ static void writeFile(File f,byte[] data)throws IOException{try(FileOutputStream o=new FileOutputStream(f)){o.write(data);}}
+ java.util.List<String> savedWalls(){
+  java.util.List<String> ids=new java.util.ArrayList<>();String[] files=wallDir().list();
+  if(files!=null)for(String f:files)if(f.endsWith(".jpg")&&!f.endsWith("-vidro.jpg")&&new File(wallDir(),f.replace(".jpg","-vidro.jpg")).exists())ids.add(f.substring(0,f.length()-4));
+  java.util.Collections.sort(ids,java.util.Collections.reverseOrder());return ids;
+ }
+ boolean selectWall(String id){
+  try(InputStream a=new FileInputStream(new File(wallDir(),id+".jpg"));InputStream b=new FileInputStream(new File(wallDir(),id+"-vidro.jpg"))){
+   customWallJpg=readAll(a);customWallBlurJpg=readAll(b);prefs.edit().putString("wall:selected",id).apply();return true;
+  }catch(IOException e){return false;}
+ }
+ void forgetWall(String id){
+  new File(wallDir(),id+".jpg").delete();new File(wallDir(),id+"-vidro.jpg").delete();
+  if(id.equals(prefs.getString("wall:selected",""))){prefs.edit().remove("wall:selected").apply();customWallJpg=null;customWallBlurJpg=null;}
  }
 }
