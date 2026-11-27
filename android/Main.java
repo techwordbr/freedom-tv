@@ -236,7 +236,7 @@ public class Main extends Activity {
  }
 
  // Etapa 3: Depois que a TV já está configurada, mostra os temas (e no Vidro Líquido permite configurar/trocar papel de parede!)
- void cleanupChoice(){screen(7,"Preparar a instalação");status=new TextView(this);panel.addView(status);text("Deseja remover aplicativos antes de escolher o tema?");button("Sim, escolher aplicativos",()->RootAccess.manage(this));button("Não, continuar para os temas",()->themes());button("Concluir e escolher tema",()->themes());}
+ void cleanupChoice(){screen(7,"Preparar a instalação");status=new TextView(this);panel.addView(status);text("Deseja remover aplicativos antes de escolher o tema?");button("Sim, escolher aplicativos",()->RootAccess.manage(this));button("Não, continuar para os temas",()->themes());}
  Button[] themeBtn=new Button[8];LinearLayout[] themeLoad=new LinearLayout[8];AiBar[] themeBar=new AiBar[8];TextView[] themeLabel=new TextView[8];int activeTheme=-1;
  void themes(){
    activeTheme=-1;java.util.Arrays.fill(themeBtn,null);
@@ -318,7 +318,7 @@ public class Main extends Activity {
      button(tr("Enviar papel de parede para a TV agora","Send wallpaper to TV now","Enviar fondo a la TV ahora"),()->{
        if(busy)return;
        String pass=LgSetup.read(this,host);
-       if(host.isEmpty()||pass.length()!=6){connect();return;}
+       if(host.isEmpty()||(!prefs.getBoolean("root:"+host,false)&&LgSetup.read(this,"root-private:"+host).isEmpty()&&pass.length()!=6)){connect();return;}
        busy=true;
        status.setText("Enviando novo papel de parede para a TV LG…");
        new Thread(()->runWallpaperOnly(host,pass)).start();
@@ -420,18 +420,16 @@ return session;}catch(Exception e){if(session!=null)session.disconnect();throw e
   Session session=null;
   try{
    if(!InetAddress.getByName(host).isSiteLocalAddress())throw new IOException("Use o endereço local da LG.");
-   String cachedKey=LgSetup.read(this,"key:"+host);ByteArrayOutputStream key=new ByteArrayOutputStream();
-   if(!cachedKey.isEmpty()){key.write(android.util.Base64.decode(cachedKey,android.util.Base64.NO_WRAP));say("Conectando à LG…");}
-   else{
-    HttpURLConnection http=(HttpURLConnection)new URL("http://"+host+":9991/webos_rsa").openConnection();
-    http.setConnectTimeout(6000);http.setReadTimeout(6000);
-    try(InputStream in=http.getInputStream()){byte[] b=new byte[2048];int n;while((n=in.read(b))!=-1)key.write(b,0,n);}finally{http.disconnect();}
+   // Same way in as runInstall (Augusto 26/11): Homebrew (root) first when this phone was authorized there — on a
+   // rooted TV the Developer Mode ports are closed — then Developer Mode, showing the real reason if both fail.
+   boolean viaRoot=prefs.getBoolean("root:"+host,false)||!LgSetup.read(this,"root-private:"+host).isEmpty();
+   String rootError=null;
+   if(viaRoot){say("Conectando pelo Homebrew (root)…");try{session=RootAccess.connect(this,host,LgSetup.read(this,"root:"+host));}catch(Exception e){android.util.Log.e("FreedomTV","Homebrew falhou (papel de parede)",e);rootError=e.getMessage();session=null;}}
+   if(session==null){
+    if(pass.length()!=6)throw new IOException("Não foi possível conectar pelo Homebrew"+(rootError!=null?" ("+rootError+")":"")+". Confira na TV: Homebrew Channel → SSH Server ligado.");
+    say(rootError!=null?"Homebrew não respondeu; tentando o Modo Desenvolvedor…":"Conectando pelo Modo Desenvolvedor…");
+    try{session=developerConnect(host,pass);}catch(Exception e){throw new IOException((rootError!=null?"Homebrew: "+rootError+". ":"")+"Modo Desenvolvedor: "+e.getMessage());}
    }
-   JSch ssh=new JSch();ssh.addIdentity("tv",key.toByteArray(),null,pass.getBytes("UTF-8"));
-   session=ssh.getSession("prisoner",host,9922);session.setTimeout(30000);
-   session.setConfig("PreferredAuthentications","publickey");session.setConfig("StrictHostKeyChecking","no");
-   session.connect(12000);
-   try{LgSetup.save(this,host,pass);LgSetup.save(this,"key:"+host,android.util.Base64.encodeToString(key.toByteArray(),android.util.Base64.NO_WRAP));}catch(Exception ignored){}
    say("Enviando seu novo papel de parede para o Vidro Líquido…");
    pushWallFiles(session);
    JSONObject paramsObj=new JSONObject().put("studioTheme","vidro").put("customWall",System.currentTimeMillis());
